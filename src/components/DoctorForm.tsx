@@ -52,9 +52,9 @@ const DoctorForm: React.FC<DoctorFormProps> = ({ onPatientAdded }) => {
     setMessage(undefined);
     
     try {
-      const patientId = await addPatient(formData);
+      const newPatient = await addPatient(formData);
       setMessage({ 
-        text: `Patient added successfully with ID: ${patientId}`, 
+        text: `Patient added successfully with ID: ${newPatient.id}`,
         type: 'success' 
       });
       

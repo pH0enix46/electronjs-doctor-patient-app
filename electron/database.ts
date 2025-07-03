@@ -328,6 +328,16 @@ export const initializeDatabaseHandlers = () => {
     return patients.map(processPatient);
   });
 
+  ipcMain.handle("db:getPatient", async (_, id: number) => {
+    console.log("Getting patient with ID:", id);
+    const db = getDB();
+    const patient = db.prepare("SELECT * FROM patients WHERE id = ?").get(id) as PatientRow | undefined;
+    if (!patient) {
+      throw new Error(`Patient with ID ${id} not found`);
+    }
+    return processPatient(patient);
+  });
+
   // Doctor handlers
   ipcMain.handle("db:deleteDoctor", async (_, id: number) => {
     console.log("Deleting doctor:", id);
@@ -478,18 +488,29 @@ export const initializeDatabaseHandlers = () => {
       // Update patient record
       db.prepare(
         `UPDATE patients SET 
-          name = @name,
-          age = @age,
-          gender = @gender,
-          phone = @phone,
-          email = @email,
-          address = @address,
-          medical_history = @medical_history,
-          image_path = @image_path,
-          is_synced = @is_synced,
+          name = ?,
+          age = ?,
+          gender = ?,
+          phone = ?,
+          email = ?,
+          address = ?,
+          medical_history = ?,
+          image_path = ?,
+          is_synced = ?,
           updated_at = CURRENT_TIMESTAMP
-        WHERE id = @id`
-      ).run(updateData);
+        WHERE id = ?`
+      ).run(
+        updateData.name,
+        updateData.age,
+        updateData.gender,
+        updateData.phone,
+        updateData.email,
+        updateData.address,
+        updateData.medical_history,
+        updateData.image_path,
+        updateData.is_synced,
+        updateData.id
+      );
 
       // Add to sync queue
       db.prepare(
@@ -511,7 +532,7 @@ export const initializeDatabaseHandlers = () => {
     }
   });
 
-  ipcMain.handle("db:deletePatient", async (_, id) => {
+  ipcMain.handle("db:deletePatient", async (_, id: number) => {
     console.log("Deleting patient:", id);
     const db = getDB();
     
@@ -519,12 +540,15 @@ export const initializeDatabaseHandlers = () => {
     db.exec('BEGIN TRANSACTION');
     
     try {
-      // Get patient data to delete associated image
-      const patient = db.prepare("SELECT * FROM patients WHERE id = ?").get(id) as PatientRow | undefined;
+      // First, check if patient exists
+      const patientExists = db.prepare("SELECT id FROM patients WHERE id = ?").get(id);
       
-      if (!patient) {
+      if (!patientExists) {
         throw new Error(`Patient with ID ${id} not found`);
       }
+      
+      // Get patient data to delete associated image
+      const patient = db.prepare("SELECT * FROM patients WHERE id = ?").get(id) as PatientRow;
       
       // Delete associated image if it exists
       if (patient.image_path) {
@@ -540,7 +564,11 @@ export const initializeDatabaseHandlers = () => {
       }
       
       // Delete the patient record
-      db.prepare("DELETE FROM patients WHERE id = ?").run(id);
+      const result = db.prepare("DELETE FROM patients WHERE id = ?").run(id);
+      
+      if (result.changes === 0) {
+        throw new Error(`Failed to delete patient with ID ${id}`);
+      }
 
       // Add to sync queue
       db.prepare(
@@ -550,13 +578,13 @@ export const initializeDatabaseHandlers = () => {
       // Commit transaction
       db.exec('COMMIT');
       
-      return true;
+      return { success: true, message: `Patient with ID ${id} deleted successfully` };
       
-    } catch (error) {
+    } catch (error: any) {
       // Rollback on error
       db.exec('ROLLBACK');
       console.error('Error deleting patient:', error);
-      throw error;
+      throw new Error(`Failed to delete patient: ${error?.message || 'Unknown error'}`);
     }
   });
 
