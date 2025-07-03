@@ -5,3 +5,4 @@
 **use this comand to check where the path**
 ` find ~/ -name "doctor-app.db" -o -name "patient_images" 2>/dev/null`
 
+**if facing any issue the run `npm run rebuild` and then `npm run dev`**
