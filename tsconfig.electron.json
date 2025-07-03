@@ -1,12 +1,30 @@
-// tsconfig.electron.json
 {
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
-    "outDir": "dist-electron",
+    "outDir": "dist-electron/electron",
+    "rootDir": "electron",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "noEmit": false,
+    "sourceMap": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "composite": true,
+    "incremental": true
   },
-  "include": ["electron"]
+  "include": [
+    "electron/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

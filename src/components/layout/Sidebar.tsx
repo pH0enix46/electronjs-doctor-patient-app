@@ -18,6 +18,15 @@ const sidebarItems: SidebarItem[] = [
 
 export function Sidebar() {
   const location = useLocation();
+  
+  // Helper function to check if a path is active
+  const isActive = (path: string) => {
+    // Special handling for root path
+    if (path === '/') {
+      return location.pathname === path;
+    }
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <div className="hidden md:flex md:flex-shrink-0 ">
@@ -40,7 +49,7 @@ export function Sidebar() {
                 to={item.href}
                 className={cn(
                   "flex items-center px-4 py-2 text-base font-medium rounded-md transition-colors",
-                  location.pathname === item.href
+                  isActive(item.href)
                     ? "bg-indigo-50 text-indigo-700"
                     : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                 )}
