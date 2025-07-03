@@ -9,8 +9,9 @@ export interface Patient {
   email?: string;
   address?: string;
   medical_history?: string;
-  image_path?: string;
-  image_data?: string; // Base64 image data
+  image_path?: string;        // Filesystem path to the image
+  image_url?: string;          // URL to access the image in the renderer
+  image_data?: string;         // Base64 image data
   created_at?: string;
   is_synced?: boolean;
 }
@@ -19,14 +20,7 @@ export const addPatient = async (patient: Patient): Promise<number> => {
   try {
     let imagePath = patient.image_path;
     
-    // Save image if new image data is provided
-    if (patient.image_data) {
-      // Generate a temporary ID for the image
-      const tempId = Date.now();
-      imagePath = await db.saveImage(patient.image_data, tempId);
-    }
-    
-    // Create patient data object
+    // Create patient data object first (without image)
     const patientData = {
       name: patient.name,
       age: patient.age,
@@ -35,17 +29,17 @@ export const addPatient = async (patient: Patient): Promise<number> => {
       email: patient.email,
       address: patient.address,
       medical_history: patient.medical_history,
-      image_path: imagePath,
       is_synced: false
     };
     
-    // Add patient to database
+    // Add patient to database first to get the patient ID
     const patientId = await db.addPatient(patientData);
     
-    // If we used a temporary ID for the image, update it with the actual patient ID
-    if (patient.image_data && imagePath) {
-      const newImagePath = await db.saveImage(patient.image_data, patientId);
-      await db.updatePatient(patientId, { image_path: newImagePath });
+    // Save image with the actual patient ID if image data is provided
+    if (patient.image_data) {
+      imagePath = await db.saveImage(patient.image_data, patientId);
+      // Update the patient record with the image path
+      await db.updatePatient(patientId, { image_path: imagePath });
     }
     
     // Add to sync queue
@@ -80,16 +74,16 @@ export const updatePatient = async (id: number, patient: Patient): Promise<boole
       imagePath = await db.saveImage(patient.image_data, id);
     }
     
-    // Create update data
-    const updateData = {
+    // Create update data with explicit undefined for missing fields
+    const updateData: Partial<Patient> = {
       name: patient.name,
-      age: patient.age || null,
-      gender: patient.gender || null,
-      phone: patient.phone || null,
-      email: patient.email || null,
-      address: patient.address || null,
-      medical_history: patient.medical_history || null,
-      image_path: imagePath || null,
+      ...(patient.age !== undefined && { age: patient.age }),
+      ...(patient.gender !== undefined && { gender: patient.gender }),
+      ...(patient.phone !== undefined && { phone: patient.phone }),
+      ...(patient.email !== undefined && { email: patient.email }),
+      ...(patient.address !== undefined && { address: patient.address }),
+      ...(patient.medical_history !== undefined && { medical_history: patient.medical_history }),
+      image_path: imagePath || undefined,
       is_synced: false
     };
     
