@@ -16,92 +16,37 @@ export interface Patient {
   is_synced?: boolean;
 }
 
-export const addPatient = async (patient: Patient): Promise<number> => {
+export const addPatient = async (patient: Patient): Promise<Patient> => {
   try {
-    let imagePath = patient.image_path;
-    
-    // Create patient data object first (without image)
-    const patientData = {
-      name: patient.name,
-      age: patient.age,
-      gender: patient.gender,
-      phone: patient.phone,
-      email: patient.email,
-      address: patient.address,
-      medical_history: patient.medical_history,
-      is_synced: false
-    };
-    
-    // Add patient to database first to get the patient ID
-    const patientId = await db.addPatient(patientData);
-    
-    // Save image with the actual patient ID if image data is provided
-    if (patient.image_data) {
-      imagePath = await db.saveImage(patient.image_data, patientId);
-      // Update the patient record with the image path
-      await db.updatePatient(patientId, { image_path: imagePath });
+    // The backend returns a Patient object, but the frontend db wrapper might be mistyped.
+    // We cast to 'unknown' first to bypass the incorrect type from the db wrapper.
+    const newPatient = (await db.addPatient(patient)) as unknown as Patient;
+    if (!newPatient || !newPatient.id) {
+      throw new Error(
+        'Failed to add patient or receive a valid new patient object.'
+      );
     }
-    
-    // Add to sync queue
-    const insertedPatient = await getPatient(patientId);
-    if (insertedPatient) {
-      await db.addToSyncQueue('patients', patientId, 'INSERT', insertedPatient);
-    }
-    
-    return patientId;
+    return newPatient;
   } catch (error) {
     console.error('Error adding patient:', error);
     throw error;
   }
 };
 
-export const updatePatient = async (id: number, patient: Patient): Promise<boolean> => {
+export const updatePatient = async (
+  id: number,
+  patient: Partial<Patient>
+): Promise<Patient | null> => {
   try {
-    // Get existing patient to handle image updates
-    const existingPatient = await getPatient(id);
-    if (!existingPatient) return false;
-    
-    // Handle image update
-    let imagePath = patient.image_path || existingPatient.image_path || '';
-    
-    // If we have new image data
-    if (patient.image_data) {
-      // Delete old image if exists
-      if (existingPatient.image_path) {
-        await db.deleteImage(existingPatient.image_path);
-      }
-      // Save new image
-      imagePath = await db.saveImage(patient.image_data, id);
-    }
-    
-    // Create update data with explicit undefined for missing fields
-    const updateData: Partial<Patient> = {
-      name: patient.name,
-      ...(patient.age !== undefined && { age: patient.age }),
-      ...(patient.gender !== undefined && { gender: patient.gender }),
-      ...(patient.phone !== undefined && { phone: patient.phone }),
-      ...(patient.email !== undefined && { email: patient.email }),
-      ...(patient.address !== undefined && { address: patient.address }),
-      ...(patient.medical_history !== undefined && { medical_history: patient.medical_history }),
-      image_path: imagePath || undefined,
-      is_synced: false
-    };
-    
-    // Update patient
-    const success = await db.updatePatient(id, updateData);
-    
-    if (success) {
-      // Add to sync queue
-      const updatedPatient = await getPatient(id);
-      if (updatedPatient) {
-        await db.addToSyncQueue('patients', id, 'UPDATE', updatedPatient);
-      }
-    }
-    
-    return success;
+    // The backend returns a Patient object, but the frontend db wrapper might be mistyped.
+    const updatedPatient = (await db.updatePatient(
+      id,
+      patient
+    )) as unknown as Patient | null;
+    return updatedPatient;
   } catch (error) {
     console.error('Error updating patient:', error);
-    return false;
+    throw error;
   }
 };
 
