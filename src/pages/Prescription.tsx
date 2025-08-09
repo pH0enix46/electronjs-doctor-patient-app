@@ -44,7 +44,7 @@ interface DoctorTemplate {
 const DOCTOR_TEMPLATES: Record<DoctorTemplateKey, DoctorTemplate> = {
   dental_pride: {
     key: "dental_pride",
-    clinicName: "Dental Care PRIDE",
+    clinicName: "DENTAL CARE PRIDE",
     brandTextClass: "text-indigo-600",
     brandBgClass: "bg-indigo-600",
     doctorName: "DR. S.M. GOLAM MORSHED",
@@ -370,7 +370,7 @@ const Prescription: React.FC = () => {
 
       <div
         ref={printRef}
-        className="bg-white mx-auto shadow border print:shadow-none print:border-0"
+        className="prescription-print bg-white mx-auto shadow border print:shadow-none print:border-0"
         style={{ width: A4_WIDTH, maxWidth: "100%" }}
       >
         {/* Header */}
@@ -418,25 +418,32 @@ const Prescription: React.FC = () => {
           <div className="flex gap-6">
             <div className="w-10 text-4xl font-extrabold text-gray-600">℞</div>
             <div className="flex-1 space-y-4">
-              {medicines
-                .filter((m) => m.name.trim().length > 0)
-                .map((m, idx) => (
-                  <div key={m.id} className="border-b pb-3">
-                    <div className="flex items-baseline gap-2">
-                      <div className="font-semibold text-gray-800">
+              {/* Medicines table for print: shows explicit column titles */}
+              <div className="border rounded">
+                <div className="grid grid-cols-12 text-xs font-semibold bg-gray-100 text-gray-700">
+                  <div className="col-span-4 py-2 pl-3">Name</div>
+                  <div className="col-span-2 py-2 pl-3">Dose</div>
+                  <div className="col-span-2 py-2 pl-3">Frequency</div>
+                  <div className="col-span-2 py-2 pl-3">Duration</div>
+                  <div className="col-span-2 py-2 pl-3">Notes</div>
+                </div>
+                {medicines
+                  .filter((m) => m.name.trim().length > 0)
+                  .map((m, idx) => (
+                    <div
+                      key={m.id}
+                      className="grid grid-cols-12 text-sm text-gray-800 border-t"
+                    >
+                      <div className="col-span-4 py-2 pl-3 font-semibold">
                         {idx + 1}. {m.name}
                       </div>
-                      {m.dose && (
-                        <div className="text-xs text-gray-500">{m.dose}</div>
-                      )}
+                      <div className="col-span-2 py-2 pl-3">{m.dose}</div>
+                      <div className="col-span-2 py-2 pl-3">{m.frequency}</div>
+                      <div className="col-span-2 py-2 pl-3">{m.duration}</div>
+                      <div className="col-span-2 py-2 pl-3">{m.notes}</div>
                     </div>
-                    <div className="text-sm text-gray-700">
-                      {m.frequency && <span>Take {m.frequency}. </span>}
-                      {m.duration && <span>For {m.duration}. </span>}
-                      {m.notes && <span>{m.notes}</span>}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+              </div>
 
               {diagnosis.trim() && (
                 <div className="mt-6">
@@ -498,6 +505,11 @@ const Prescription: React.FC = () => {
         @media print {
           body { background: white; }
           @page { size: A4; margin: 10mm; }
+          /* Isolate the prescription area when printing */
+          body * { visibility: hidden !important; }
+          .prescription-print, .prescription-print * { visibility: visible !important; }
+          .prescription-print { position: absolute; left: 0; right: 0; top: 0; margin: 0 auto; }
+          /* Utility helpers */
           .print\:block { display: block !important; }
           .print\:border-0 { border: 0 !important; }
           .print\:shadow-none { box-shadow: none !important; }
