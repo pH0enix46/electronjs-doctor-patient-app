@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FiMenu, FiBell, FiUser } from 'react-icons/fi';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { FiMenu, FiBell, FiUser } from "react-icons/fi";
 
 type NavbarProps = {
   onMenuClick: () => void;
@@ -19,12 +19,12 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         <span className="sr-only">Open sidebar</span>
         <FiMenu className="h-6 w-6" />
       </button>
-      
+
       <div className="flex-1 px-4 flex justify-between">
         <div className="flex-1 flex items-center">
           <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
         </div>
-        
+
         <div className="ml-4 flex items-center md:ml-6">
           <button
             type="button"
